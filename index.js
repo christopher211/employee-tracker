@@ -1,5 +1,6 @@
 import clear from "clear";
 import figlet from "figlet";
+import menu from "./src/menu.js";
 
 const welcomeScreen = async () => {
   clear();
@@ -28,6 +29,7 @@ const welcomeScreen = async () => {
 
 const init = async () => {
   await welcomeScreen();
+  await menu();
 };
 
 init();

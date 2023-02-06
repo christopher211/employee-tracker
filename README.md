@@ -1,12 +1,22 @@
-# 12 SQL: Employee Tracker
+# Homework 12: Employee Tracker
 
-## Your Task
+## Table of Contents:
 
-Developers frequently have to create interfaces that allow non-developers to easily view and interact with information stored in databases. These interfaces are called **content management systems (CMS)**. Your assignment this week is to build a command-line application from scratch to manage a company's employee database, using Node.js, Inquirer, and MySQL.
+1. [Description](#description)
+2. [Links](#links)
+3. [User Story](#user-story)
+4. [Requirement](#requirement)
+5. [Preview](#preview)
 
-Because this Challenge will require the use of the `Inquirer` package, ensure that you install and use Inquirer version 8.2.4. To do so, use the following command in your project folder: `npm i inquirer@8.2.4`.
+## Description
 
-Because this application won’t be deployed, you’ll also need to create a walkthrough video that demonstrates its functionality and all of the following acceptance criteria being met. You’ll need to submit a link to the video and add it to the README of your project.
+Command line tool to manage employees using MySQL and Inquirer
+
+## Links
+
+- The repo of the tool: [Source Code](https://github.com/christopher211/employee-tracker)
+
+- Here is the link of demo video: [Google drive](https://drive.google.com/file/d/1BMDYjYdCqJyoCxjfX19o7CFybPuvxvs9/view?usp=share_link)
 
 ## User Story
 
@@ -38,8 +48,6 @@ WHEN I choose to update an employee role
 THEN I am prompted to select an employee to update and their new role and this information is updated in the database
 ```
 
-## Mock-Up
+## Preview
 
-The following video shows an example of the application being used from the command line:
-
-[![A video thumbnail shows the command-line employee management application with a play button overlaying the view.](./Assets/12-sql-homework-video-thumbnail.png)](https://2u-20.wistia.com/medias/2lnle7xnpk)
+![A screen shot demo command line tool.](./demo/preview.png)

@@ -7,11 +7,20 @@ const processing = async (select) => {
     case "view_all_employee":
       await viewAllEmployee();
       break;
+    case "view_all_employee_by_manager":
+      await viewAllEmployeeByManager();
+      break;
+    case "view_all_employee_by_department":
+      await viewAllEmployeeByDepartment();
+      break;
     case "add_employee":
       await addEmployee();
       break;
     case "update_employee_role":
       await updateEmployeeRole();
+      break;
+    case "update_employee_manager":
+      await updateEmployeeManager();
       break;
     case "view_all_role":
       await viewAllRole();
@@ -22,8 +31,20 @@ const processing = async (select) => {
     case "view_all_department":
       await viewAllDepartment();
       break;
+    case "utilized_budget":
+      await viewDepartmentSalaries();
+      break;
     case "add_department":
       await addDepartment();
+      break;
+    case "delete_employee":
+      await deleteEmployee();
+      break;
+    case "delete_role":
+      await deleteRole();
+      break;
+    case "delete_department":
+      await deleteDepartment();
       break;
     case "exit":
       process.exit();
@@ -56,6 +77,65 @@ const viewAllEmployee = async () => {
   LEFT JOIN employee manager ON manager.id = employee.manager_id`;
   const [rows, fields] = await dbConnection.execute(sql);
   console.table(rows);
+  await continuePrompt();
+};
+
+// view all employees by manager from database by using query
+const viewAllEmployeeByManager = async () => {
+  const sql = `SELECT * FROM employee`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const managers = rows.map((manager) => {
+    return { name: manager.first_name, value: manager.id };
+  });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select a manager",
+      choices: managers,
+      name: "manager",
+    },
+  ]);
+
+  const sql2 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager
+  FROM employee
+  LEFT JOIN role ON employee.role_id = role.id
+  LEFT JOIN department ON role.department_id = department.id
+  LEFT JOIN employee manager ON manager.id = employee.manager_id
+  WHERE manager.id = ?`;
+  const [rows2, fields2] = await dbConnection.execute(sql2, [response.manager]);
+  console.table(rows2);
+  await continuePrompt();
+};
+
+// view all employees by department from database by using query
+const viewAllEmployeeByDepartment = async () => {
+  const sql = `SELECT * FROM department`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const departments = rows.map((department) => {
+    return { name: department.name, value: department.id };
+  });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select a department",
+      choices: departments,
+      name: "department",
+    },
+  ]);
+
+  const sql2 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager
+
+  FROM employee
+  LEFT JOIN role ON employee.role_id = role.id
+  LEFT JOIN department ON role.department_id = department.id
+  LEFT JOIN employee manager ON manager.id = employee.manager_id
+  WHERE department.id = ?`;
+  const [rows2, fields2] = await dbConnection.execute(sql2, [
+    response.department,
+  ]);
+  console.table(rows2);
   await continuePrompt();
 };
 
@@ -201,6 +281,49 @@ const viewAllDepartment = async () => {
   await continuePrompt();
 };
 
+// view the combined salaries of all employees by department using inquirer to get department and query to get salaries and total employees of each department
+const viewDepartmentSalaries = async () => {
+  const sql = `SELECT * FROM department`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const departments = rows.map((department) => {
+    return { name: department.name, value: department.id };
+  });
+
+  // add option to select all departments
+  departments.push({ name: "All Departments", value: "all" });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select department",
+      choices: departments,
+      name: "department_id",
+    },
+  ]);
+
+  // if all departments selected, get salaries for all departments
+  if (response.department_id === "all") {
+    const sql2 = `SELECT department.name AS department, SUM(role.salary) AS total_salary, COUNT(employee.id) as total_employees
+    FROM employee
+    LEFT JOIN role ON employee.role_id = role.id
+    LEFT JOIN department ON role.department_id = department.id
+    GROUP BY department.name`;
+    const [rows2, fields2] = await dbConnection.execute(sql2);
+    console.table(rows2);
+  } else {
+    const sql2 = `SELECT department.name AS department, SUM(role.salary) AS total_salary, COUNT(employee.id) as total_employees
+    FROM employee
+    LEFT JOIN role ON employee.role_id = role.id
+    LEFT JOIN department ON role.department_id = department.id
+    WHERE department.id = ?
+    GROUP BY department.name`;
+    const params = [response.department_id];
+    const [rows2, fields2] = await dbConnection.execute(sql2, params);
+    console.table(rows2);
+  }
+  await continuePrompt();
+};
+
 // add department to database by using inquirer to get department name
 const addDepartment = async () => {
   const response = await inquirer.prompt([
@@ -215,6 +338,125 @@ const addDepartment = async () => {
   const params = [response.name];
   const [rows, fields] = await dbConnection.execute(sql, params);
   console.log("==== Department added successfully ====");
+  await continuePrompt();
+};
+
+// delete employee from database by using inquirer to get employee
+const deleteEmployee = async () => {
+  const sql = `SELECT * FROM employee`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const employees = rows.map((employee) => {
+    return { name: employee.first_name, value: employee.id };
+  });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select employee to delete",
+      choices: employees,
+      name: "employee_id",
+    },
+    {
+      type: "confirm",
+      message: "Are you sure you want to proceed?",
+      name: "confirm",
+      default: false,
+    },
+  ]);
+
+  if (!response.confirm) {
+    console.log("==== Employee not deleted ====");
+  } else {
+    const sql2 = `DELETE FROM employee WHERE id = ?`;
+    const params = [response.employee_id];
+    const [rows2, fields2] = await dbConnection.execute(sql2, params);
+    console.log("==== Employee deleted successfully ====");
+  }
+  await continuePrompt();
+};
+
+// delete role from database by using inquirer to get role
+const deleteRole = async () => {
+  const sql = `SELECT * FROM role`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const roles = rows.map((role) => {
+    return { name: role.title, value: role.id };
+  });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select role to delete",
+      choices: roles,
+      name: "role_id",
+    },
+    {
+      type: "confirm",
+      message: "Are you sure you want to proceed?",
+      name: "confirm",
+      default: false,
+    },
+  ]);
+
+  if (!response.confirm) {
+    console.log("==== Role not deleted ====");
+  } else {
+    // delete employees with role
+    const sql1 = `DELETE FROM employee WHERE role_id = ?`;
+    const params1 = [response.role_id];
+    const [rows1, fields1] = await dbConnection.execute(sql1, params1);
+
+    // delete role
+    const sql2 = `DELETE FROM role WHERE id = ?`;
+    const params = [response.role_id];
+    const [rows2, fields2] = await dbConnection.execute(sql2, params);
+    console.log("==== Role deleted successfully ====");
+  }
+  await continuePrompt();
+};
+
+// delete department from database by using inquirer to get department
+const deleteDepartment = async () => {
+  const sql = `SELECT * FROM department`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const departments = rows.map((department) => {
+    return { name: department.name, value: department.id };
+  });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select department to delete",
+      choices: departments,
+      name: "department_id",
+    },
+    {
+      type: "confirm",
+      message: "Are you sure you want to proceed?",
+      name: "confirm",
+      default: false,
+    },
+  ]);
+
+  if (!response.confirm) {
+    console.log("==== Department not deleted ====");
+  } else {
+    // delete employees in department
+    const sql1 = `DELETE FROM employee WHERE role_id IN (SELECT id FROM role WHERE department_id = ?)`;
+    const params1 = [response.department_id];
+    const [rows1, fields1] = await dbConnection.execute(sql1, params1);
+
+    // delete roles in department
+    const sql2 = `DELETE FROM role WHERE department_id = ?`;
+    const params2 = [response.department_id];
+    const [rows2, fields2] = await dbConnection.execute(sql2, params2);
+
+    // delete department
+    const sql3 = `DELETE FROM department WHERE id = ?`;
+    const params3 = [response.department_id];
+    const [rows3, fields3] = await dbConnection.execute(sql3, params3);
+    console.log("==== Department deleted successfully ====");
+  }
   await continuePrompt();
 };
 

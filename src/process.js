@@ -229,6 +229,42 @@ const updateEmployeeRole = async () => {
   await continuePrompt();
 };
 
+// update employee manager by using inquirer to get employee and manager
+const updateEmployeeManager = async () => {
+  const sql = `SELECT * FROM employee`;
+  const [rows, fields] = await dbConnection.execute(sql);
+  const employees = rows.map((employee) => {
+    return { name: employee.first_name, value: employee.id };
+  });
+
+  const sql2 = `SELECT * FROM employee`;
+  const [rows2, fields2] = await dbConnection.execute(sql2);
+  const managers = rows2.map((manager) => {
+    return { name: manager.first_name, value: manager.id };
+  });
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Select employee",
+      choices: employees,
+      name: "employee_id",
+    },
+    {
+      type: "list",
+      message: "Select employee's new manager",
+      choices: managers,
+      name: "manager_id",
+    },
+  ]);
+
+  const sql3 = `UPDATE employee SET manager_id = ? WHERE id = ?`;
+  const params = [response.manager_id, response.employee_id];
+  const [rows3, fields3] = await dbConnection.execute(sql3, params);
+  console.log("==== Employee manager updated successfully ====");
+  await continuePrompt();
+};
+
 // view all roles from database by using query
 const viewAllRole = async () => {
   const sql = `SELECT role.id, role.title, department.name AS department, role.salary
